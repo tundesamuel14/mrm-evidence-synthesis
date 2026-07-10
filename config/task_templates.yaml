@@ -1,0 +1,51 @@
+# =============================================================================
+# TASK TEMPLATES  (Stage 0)
+# -----------------------------------------------------------------------------
+# Maps each downstream task to (a) its risk tier and (b) the evidence
+# categories its validation requires.
+#
+# NOTE ON AUTHORITY: None of this comes from SR 11-7 directly. SR 11-7 gives a
+# PRINCIPLE (validation proportional to model risk). The specific mappings below
+# are the institution's IMPLEMENTATION of that principle -- configurable
+# organizational policy, owned by a designated policy team. Editing this file is
+# a policy change, not a code change.
+# =============================================================================
+
+credit_underwriting:
+  display_name: "Credit Underwriting"
+  risk_tier: high
+  required_categories: [utility, fairness, privacy, calibration]
+  # Categories that, for this high-risk task, may not silently pass:
+  non_negotiable: [fairness, privacy]
+  description: >
+    Consumer lending decision model. High risk: directly affects credit access,
+    carries fair-lending exposure, and requires well-calibrated probabilities
+    for pricing. Fairness and privacy are non-negotiable.
+
+fraud_detection:
+  display_name: "Fraud Detection"
+  risk_tier: medium
+  required_categories: [utility, privacy, robustness, rare_event]
+  non_negotiable: [privacy]
+  description: >
+    Transaction fraud classifier. Medium risk: rare-event coverage and
+    robustness matter more than calibration; must still protect privacy.
+
+aml:
+  display_name: "Anti-Money Laundering (AML)"
+  risk_tier: high
+  required_categories: [utility, privacy, robustness, rare_event]
+  non_negotiable: [privacy, rare_event]
+  description: >
+    Suspicious-activity detection. High risk: regulatory obligation, heavy
+    reliance on catching rare patterns; privacy and rare-event coverage are
+    non-negotiable.
+
+stress_testing:
+  display_name: "Market Stress Testing"
+  risk_tier: high
+  required_categories: [utility, robustness, calibration, rare_event]
+  non_negotiable: [robustness, rare_event]
+  description: >
+    Capital / scenario models. High risk: must represent tail behaviour
+    faithfully; robustness and rare-event (tail) coverage are non-negotiable.

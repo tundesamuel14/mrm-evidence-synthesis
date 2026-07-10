@@ -1,0 +1,110 @@
+# =============================================================================
+# POLICY RULES  (Stage 3 -- the Policy Engine)  and
+# RECOMMENDATION MAP (Stage 4)
+# -----------------------------------------------------------------------------
+# Category confidences (High/Medium/Low) -> overall confidence -> recommendation.
+#
+# This is where SR 11-7's PROPORTIONALITY principle is operationalized -- as
+# explicit, owned rules, not as math. The rules differ BY RISK TIER: higher risk
+# = stricter caps. That IS proportional validation.
+#
+# Rules within a tier are evaluated top-to-bottom; the FIRST cap that applies
+# wins. Everything here is configurable policy.
+# =============================================================================
+
+# Ordinal scale used for comparisons ("< High", "weakest", etc.)
+confidence_scale: [low, medium, high]
+
+risk_tiers:
+
+  high:
+    rules:
+      - id: R1_low_floor
+        when: "any required category == low"
+        effect: "overall = low"
+        reason: "A required evidence category is Low. For a high-risk task this is a hard floor."
+      - id: R2_nonneg_below_high
+        when: "any non_negotiable category < high"
+        effect: "overall <= medium"
+        reason: "A non-negotiable category is below High. High-risk policy caps overall at Medium until remediated."
+      - id: R3_two_mediums
+        when: "count(required category == medium) >= 2"
+        effect: "overall <= medium"
+        reason: "Two or more required categories are only Medium; combined uncertainty caps overall at Medium."
+      - id: R4_default
+        when: "otherwise"
+        effect: "overall = weakest required category"
+        reason: "No cap triggered; overall confidence equals the weakest required category."
+
+  medium:
+    rules:
+      - id: R1_low_floor
+        when: "any required category == low"
+        effect: "overall = low"
+        reason: "A required evidence category is Low. This is a hard floor."
+      - id: R2_nonneg_below_medium
+        when: "any non_negotiable category < medium"
+        effect: "overall <= medium"
+        reason: "A non-negotiable category is below Medium. Policy caps overall at Medium until remediated."
+      - id: R3_default
+        when: "otherwise"
+        effect: "overall = weakest required category"
+        reason: "No cap triggered; overall confidence equals the weakest required category."
+
+# ---------------------------------------------------------------------------
+# HARD FLAGS: conditions that force Reject regardless of overall confidence.
+# These encode "non-negotiable" as an absolute, not just a cap.
+# ---------------------------------------------------------------------------
+hard_flags:
+  - id: privacy_low
+    when: "privacy == low"
+    applies_to_tiers: [high, medium]
+    reason: "Privacy evidence is Low. Privacy failures are non-negotiable -> Reject."
+  - id: rare_event_low_aml
+    when: "rare_event == low"
+    applies_to_tasks: [aml]
+    reason: "Rare-event coverage is Low for an AML task. Detection capability is non-negotiable -> Reject."
+
+# ---------------------------------------------------------------------------
+# RECOMMENDATION MAP  (Stage 4)
+# ---------------------------------------------------------------------------
+recommendation_map:
+  - overall: high
+    hard_flag: false
+    recommendation: "Approve"
+  - overall: medium
+    hard_flag: false
+    recommendation: "Conditional Approval"
+  - overall: low
+    hard_flag: false
+    recommendation: "Reject"
+  - overall: any
+    hard_flag: true
+    recommendation: "Reject"
+
+# ---------------------------------------------------------------------------
+# SUGGESTED ACTIONS: per category, shown when that category is the reason a
+# deployment is capped or rejected. Turns a verdict into something actionable.
+# ---------------------------------------------------------------------------
+suggested_actions:
+  utility:
+    - "Re-generate synthetic data with a higher-capacity generator."
+    - "Increase training epochs / sample size for the synthetic model."
+    - "Re-check feature encoding parity between real and synthetic schemas."
+  fairness:
+    - "Collect additional subgroup data for under-represented groups."
+    - "Re-generate synthetic data with fairness constraints (e.g. reweighing)."
+    - "Re-run Equal Opportunity analysis after remediation."
+  privacy:
+    - "Increase differential-privacy noise or lower the epsilon budget."
+    - "Remove near-duplicate synthetic rows before deployment."
+    - "Re-run membership-inference testing after remediation."
+  calibration:
+    - "Apply post-hoc calibration (Platt scaling / isotonic regression)."
+    - "Re-check the probability outputs used for pricing."
+  robustness:
+    - "Augment synthetic data with tail/stress scenarios."
+    - "Re-run perturbation-stability testing after remediation."
+  rare_event:
+    - "Over-sample or synthesize additional rare-event examples."
+    - "Validate rare-pattern coverage against the real minority class."

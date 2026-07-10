@@ -1,0 +1,150 @@
+# =============================================================================
+# METRIC THRESHOLDS  (Stage 1 -- the Evidence Interpreter)
+# -----------------------------------------------------------------------------
+# Each metric maps a raw value -> an evidence-strength band:
+#     value beats  strong_at              -> "strong"
+#     between strong_at and weak_below    -> "moderate"
+#     value worse than weak_below         -> "weak"
+#
+# `direction`:
+#     higher_better  -> strong_at is a floor  (value >= strong_at = strong)
+#     lower_better   -> strong_at is a ceiling (value <= strong_at = strong)
+#
+# `rationale` is displayed in the audit report so the justification travels
+# WITH the decision. Every number is a proposed, configurable default -- a
+# policy owner adjusts them. The rationale is the point: it turns a naked
+# number into a governable parameter.
+#
+# `critical` (optional): reserved for a future Stage-2 refinement where a single
+# weak reading on a critical metric forces its category straight to Low. Present
+# in schema; not yet enforced in the MVP aggregation.
+# =============================================================================
+
+# ---------------------------------------------------------------- UTILITY ----
+tstr:
+  display_name: "TSTR (Train-Synthetic, Test-Real)"
+  category: utility
+  direction: higher_better
+  strong_at: 0.95
+  weak_below: 0.90
+  rationale: "Within 5 pts of real-real performance = utility parity; a 10-pt gap signals material loss."
+
+auc_gap:
+  display_name: "AUC Gap"
+  category: utility
+  direction: lower_better
+  strong_at: 0.03
+  weak_below: 0.06
+  rationale: "AUC gap between real-trained and synthetic-trained models; <=3 pts is within typical cross-dataset variation for independently-trained models, >6 pts signals the synthetic model is materially weaker. (Revised from an initial 0.02, tight for cross-dataset comparison.)"
+
+decision_agreement:
+  display_name: "Decision Agreement"
+  category: utility
+  direction: higher_better
+  strong_at: 0.85
+  weak_below: 0.70
+  rationale: "Fraction of identical decisions vs a real-trained model; >=85% is strong agreement for independently-trained models, <70% means materially different lending calls."
+
+# --------------------------------------------------------------- FAIRNESS ----
+demographic_parity:
+  display_name: "Demographic Parity Difference"
+  category: fairness
+  direction: lower_better
+  strong_at: 0.05
+  weak_below: 0.10
+  rationale: "The 0.10 band echoes the widely cited disparate-impact reference; 0.05 is comfortably clear of it."
+
+equal_opportunity:
+  display_name: "Equal Opportunity Difference"
+  category: fairness
+  direction: lower_better
+  strong_at: 0.05
+  weak_below: 0.10
+  rationale: "Equal true-positive rates across groups within 5 pts is a common fairness-parity target for lending."
+
+subgroup_performance:
+  display_name: "Worst-Subgroup Performance Ratio"
+  category: fairness
+  direction: higher_better
+  strong_at: 0.90
+  weak_below: 0.80
+  rationale: "Worst subgroup relative to overall; below 80% flags a group the model serves materially worse."
+
+# ---------------------------------------------------------------- PRIVACY ----
+membership_inference:
+  display_name: "Membership Inference Advantage"
+  category: privacy
+  direction: lower_better
+  strong_at: 0.05
+  weak_below: 0.10
+  critical: true
+  rationale: "Attacker advantage over a random guess; <=5% is near-chance, >10% indicates real membership leakage."
+
+nn_distance_ratio:
+  display_name: "Nearest-Neighbour Distance Ratio"
+  category: privacy
+  direction: higher_better
+  strong_at: 1.00
+  weak_below: 0.80
+  rationale: "Synthetic-to-real distance vs real-to-real baseline; dropping below 0.8x suggests the synthetic sits suspiciously close to real records."
+
+duplicate_rate:
+  display_name: "Duplicate / Near-Copy Rate"
+  category: privacy
+  direction: lower_better
+  strong_at: 0.01
+  weak_below: 0.05
+  critical: true
+  rationale: "Exact or near matches to real rows; even 5% is a meaningful re-identification surface."
+
+# ------------------------------------------------------------ CALIBRATION ----
+brier_score:
+  display_name: "Brier Score"
+  category: calibration
+  direction: lower_better
+  strong_at: 0.18
+  weak_below: 0.25
+  rationale: "Lower = better-calibrated probabilities; for a credit model with a ~30% base rate a Brier <=0.18 is well-calibrated, >0.25 indicates unreliable probabilities for pricing."
+
+expected_calibration_error:
+  display_name: "Expected Calibration Error (ECE)"
+  category: calibration
+  direction: lower_better
+  strong_at: 0.05
+  weak_below: 0.10
+  rationale: "Average gap between predicted and observed frequency; <=5% is well-calibrated for risk pricing."
+
+# ------------------------------------------------------------- ROBUSTNESS ----
+tail_coverage:
+  display_name: "Tail Coverage"
+  category: robustness
+  direction: higher_better
+  strong_at: 0.90
+  weak_below: 0.75
+  rationale: "Share of real rare/tail cases represented in synthetic data; below 75% risks missing the events that matter most."
+
+perturbation_stability:
+  display_name: "Perturbation Stability"
+  category: robustness
+  direction: higher_better
+  strong_at: 0.90
+  weak_below: 0.80
+  rationale: "Agreement of model outputs under small input perturbations; below 80% signals a fragile decision surface."
+
+# ------------------------------------------------------------- RARE_EVENT ----
+rare_event_recall:
+  display_name: "Rare-Event Recall"
+  category: rare_event
+  direction: higher_better
+  strong_at: 0.90
+  weak_below: 0.75
+  critical: true
+  rationale: "Detection of minority-class events (fraud/AML/tail); below 75% is unfit for a detection task."
+
+rare_event_coverage:
+  display_name: "Rare-Event Class Coverage"
+  category: rare_event
+  direction: higher_better
+  strong_at: 0.90
+  weak_below: 0.75
+  rationale: "Proportion of distinct rare patterns present in synthetic data; below 75% leaves detection blind spots."
