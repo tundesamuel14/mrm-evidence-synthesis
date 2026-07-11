@@ -1,9 +1,11 @@
 # MRM Evidence Synthesis Framework — dependencies
-# Pinned to versions known to work together on Streamlit Community Cloud.
+# Lower bounds (not exact pins) so the resolver can pick wheels compatible with
+# whatever Python the platform provides. runtime.txt pins Python to 3.11, for
+# which all of these have prebuilt wheels.
 
-streamlit==1.40.2
-pandas==2.2.3
-numpy==1.26.4
-scikit-learn==1.5.2
-scipy==1.13.1
-PyYAML==6.0.2
+streamlit>=1.40,<2
+pandas>=2.1
+numpy>=1.26,<2
+scikit-learn>=1.4
+scipy>=1.11
+PyYAML>=6.0
