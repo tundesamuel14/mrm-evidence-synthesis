@@ -50,6 +50,9 @@ def _align_encode(real: pd.DataFrame, synth: pd.DataFrame, target: str):
         axis=0, ignore_index=True,
     )
     combined = pd.get_dummies(combined.drop(columns=["_src"]), drop_first=True)
+    # get_dummies yields BOOLEAN columns in recent pandas; cast to float so all
+    # downstream arithmetic (scaling, perturbation, distances) is numeric.
+    combined = combined.astype(float)
     n_real = len(real_feats)
     X_real = combined.iloc[:n_real].reset_index(drop=True)
     X_synth = combined.iloc[n_real:].reset_index(drop=True)
@@ -123,7 +126,7 @@ def fairness_metrics(synth: pd.DataFrame, target: str, sensitive: str | None):
     # equal opportunity proxy: true-positive rate per group needs predictions.
     # Train a quick model within synth to get predictions.
     y = df[target].values
-    X = pd.get_dummies(df.drop(columns=[target]), drop_first=True)
+    X = pd.get_dummies(df.drop(columns=[target]), drop_first=True).astype(float)
     if len(np.unique(y)) < 2:
         return {"demographic_parity": round(float(dp), 4),
                 "equal_opportunity": 0.0, "subgroup_performance": 1.0}
